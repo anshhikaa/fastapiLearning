@@ -3,8 +3,10 @@ from fastapi import FastAPI , HTTPException , Query , Path
 # since i have python version < 3.10 it doesnt support union type syntax(|) 
 from typing import Optional
 # to connect product.py to main.py so we can call the functions written in other file 
-from service.product import getAllProducts
+from service.product import getAllProducts , addProducts
 from schemas.product import Product
+from uuid import uuid4
+from datetime import datetime
 
 # create an instance(object - app) from FastAPI class
 app = FastAPI()
@@ -103,4 +105,11 @@ def listProducts(
 #POST OPERATIONS 
 @app.post("/products",status_code=201)
 def createProducts(product:Product):
+    product_dict = product.model_dump(mode="json")
+    product_dict["id"] = str(uuid4())
+    product_dict["created_at"] = datetime.utcnow().isoformat() + "Z"
+    try :
+        addProducts(product_dict)
+    except ValueError as e :
+        raise HTTPException(status_code = 400 , detail = str(e))
     return product.model_dump(mode = "json") 

@@ -18,10 +18,10 @@ class Seller (BaseModel):
     @field_validator("email",mode="after")
     @classmethod
     def validateEmaillDomain(cls,value :EmailStr):
-        allowedDomian = ["mistore.in" , "hpworld.in"]
+        allowedDomain = ["mistore.in" , "hpworld.in"]
         domain = str(value).split("@")[-1]
-        if domain not in allowedDomian:
-            raise ValueError(f"seller email domain not allowed : (domain)")
+        if domain not in allowedDomain:
+            raise ValueError(f"seller email domain not allowed : {domain}")
         return value
 
 
