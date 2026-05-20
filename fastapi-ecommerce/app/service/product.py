@@ -23,3 +23,12 @@ def addProducts(product : Dict)->Dict :
     products.append(product)
     saveProducts(products)
     return product
+ 
+def removeProduct(id :str)->str:
+    products = getAllProducts()
+    for idx , p in enumerate(products):
+        if p["id"] == str(id):
+            deleted = products.pop(idx)
+            saveProducts(products)
+            return{"message" : "product deleted successfully", "data" : deleted}
+        raise ValueError("Product not found")
