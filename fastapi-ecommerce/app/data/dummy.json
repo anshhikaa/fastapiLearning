@@ -6,7 +6,7 @@
     "description": "phone new model",
     "category": "mobiles",
     "brand": "xiomi",
-    "price": 89999.0,
+    "price": 8000.0,
     "currency": "INR",
     "discountPrice": 10,
     "stock": 15,
@@ -20,8 +20,8 @@
       "https://example.com/product1.jpg"
     ],
     "dimension_cm": {
-      "length": 10.0,
-      "width": 30.0,
+      "length": 90.0,
+      "width": 70.0,
       "height": 40.0
     },
     "seller": {

@@ -3,8 +3,8 @@ from fastapi import FastAPI , HTTPException , Query , Path
 # since i have python version < 3.10 it doesnt support union type syntax(|) 
 from typing import Optional
 # to connect product.py to main.py so we can call the functions written in other file 
-from service.product import getAllProducts , addProducts , removeProduct
-from schemas.product import Product
+from service.product import getAllProducts , addProducts , removeProduct , changeProduct
+from schemas.product import Product , ProductUpdate
 from uuid import uuid4 , UUID
 from datetime import datetime
 
@@ -116,9 +116,33 @@ def createProducts(product:Product):
 
 # DELETE OPERATIONS 
 @app.delete("/products/{product_id}")
-def deleteProduct(product_id: UUID = Path(...,description="product uuid")):
+def deleteProduct(
+    product_id: UUID = Path(...,description="product uuid")):
     try : 
         res = removeProduct(str(product_id))
         return res
     except Exception as e :
         raise HTTPException(status_code = 400 , detail = str(e))
+
+#UPDATE OPERATIONS 
+@app.put("/products/{product_id}")
+def updateProduct(
+    product_id : UUID = Path(...,description= "product UUID"),
+    payload : ProductUpdate = ...
+):
+    try:
+        updatedProduct = changeProduct(
+            str(product_id),
+            payload.model_dump(
+                mode= "json",
+                exclude_unset = True
+            )
+        )
+        return updatedProduct
+    except ValueError as e:
+        raise HTTPException(
+            status_code = 404,
+            detail=str(e)
+        )
+
+

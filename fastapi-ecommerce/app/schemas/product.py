@@ -2,6 +2,9 @@ from pydantic import (BaseModel , Field , AnyUrl , field_validator , model_valid
 from typing import Annotated , Literal , Optional,List
 from uuid import UUID
 from datetime import datetime
+
+# CREATE PYDANTIC
+
 class Seller (BaseModel):
     seller_id : UUID
     seller_name : Annotated[
@@ -23,7 +26,6 @@ class Seller (BaseModel):
         if domain not in allowedDomain:
             raise ValueError(f"seller email domain not allowed : {domain}")
         return value
-
 
 class Dimension_CM (BaseModel):
     length : Annotated[
@@ -189,5 +191,77 @@ class Product(BaseModel):
         d = self.dimension_cm
         return round(d.length * d.width * d.height,2)
     
+#UPDATE PYDANTIC
 
+class Dimension_CMUpdate(BaseModel):
+    length : Optional[float]= Field(default = None ,gt = 0)
+    width : Optional[float] = Field(default = None ,gt = 0)
+    height : Optional[float] = Field(default = None ,gt = 0)
+
+class SellerUpdate(BaseModel):
+    seller_name : Optional[str] = Field(default = None ,min_length= 2 ,max_length=60)
+    email :Optional[EmailStr]= None
+    website : Optional[AnyUrl]= None
+    @field_validator("email",mode="after")
+    @classmethod
+    def validateEmaillDomain(cls,value :EmailStr):
+        if value is None :
+            return value
+        allowedDomain ={
+            "mistore.in",
+            "realmeofficial.in",
+            "samsungindia.in",
+            "lenovostore.in",
+            "hpworld.in",
+            "applestoreindia.in",
+            "dellexclusive.in",
+            "sonycenter.in",
+            "oneplusstore.in",
+            "asusexclusive.in",  
+        }
+        domain = str(value).split("@")[-1]
+        if domain not in allowedDomain:
+            raise ValueError(f"seller email domain not allowed : {domain}")
+        return value
+
+class ProductUpdate(BaseModel):
+    sku: Optional[str] = None
+    name : Optional[str] = Field(default = None , min_length= 3 , max_length=80)
+    description : Optional[str] = Field(default = None, max_length=200)
+    category : Optional[str]= None
+    brand : Optional[str] = None
+    price : Optional[float] = Field(default = None ,gt = 0)
+    currency: Optional[Literal["INR"]]= None
+    discountPrice : Optional[int] = Field(default = None ,ge= 0 , le = 90)
+    stock :Optional[int]= Field(default = None ,ge= 0)
+    isActive : Optional[bool]= None
+    rating : Optional[float] = Field(default = None ,ge=0, le=5)
+    tags : Optional[List[str]] = Field(default = None ,max_length= 10)
+    image : Optional[List[AnyUrl]]= None
+    dimension_cm : Optional[Dimension_CMUpdate]=None
+    seller : Optional[SellerUpdate]= None
+    @field_validator("sku",mode="after")
+    @classmethod
+    def validateSkuFormat(cls,value :str):
+        if value is None :
+            return value
+        if "-" not in value:
+            raise ValueError ("sku must have '-'")
+        last = value.split("-")[-1]
+        if not (len(last) == 3 and last.isdigit()):
+            raise ValueError ("sku must end with 3 digts like -987")
+        return value
+
+    @model_validator(mode = "after")
+    def validateBusinessRule(self):
+        if self.stock is not None and self.isActive is not None :
+            if self.stock == 0 and self.isActive is True :
+                raise ValueError ("if stock is zero isactive must to false")
+
+        if self.discountPrice is not None and self.rating is not None:  
+            if self.discountPrice > 0 and self.rating == 0:
+                raise ValueError ("discounted product must have a rating(rating!=0)")
+
+        return self
+    
 
