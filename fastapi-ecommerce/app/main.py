@@ -1,5 +1,6 @@
 #import fastapi httpexpection query are classes we import from fastapi
-from fastapi import FastAPI , HTTPException , Query , Path
+from fastapi import FastAPI , HTTPException , Query , Path , Request
+from fastapi.responses import JSONResponse
 # since i have python version < 3.10 it doesnt support union type syntax(|) 
 from typing import Optional
 # to connect product.py to main.py so we can call the functions written in other file 
@@ -7,14 +8,34 @@ from service.product import getAllProducts , addProducts , removeProduct , chang
 from schemas.product import Product , ProductUpdate
 from uuid import uuid4 , UUID
 from datetime import datetime
+from dotenv import load_dotenv
+# os used to access env variables
+import os 
+
+
+# env - loads the variables from .env file
+load_dotenv()
 
 # create an instance(object - app) from FastAPI class
 app = FastAPI()
 
+#Implementing a simple middleware for example 
+@app.middleware("http")
+async def log_request(request : Request,call_next):
+    print("request started")
+    response = await call_next(request)
+    print(" request finished")
+    return response
+
 # what happens in url ends with / simplest get request
-@app.get("/")
+@app.get("/",response_model = dict)
 def root():
-    return {"message" :" welcome to fastapi"}
+    DB_PATH = os.getenv("BASE_URL")
+    return JSONResponse(
+        status_code = 200,
+        content =  {"message" :" welcome to fastapi",
+         "data_path" : DB_PATH},
+    )
 
 # returns all products
 # @app.get("/products")
@@ -27,7 +48,7 @@ def getProductById(product_id:str = Path(...,
  min_length = 36 ,
  max_length= 36 ,
  description = "uuid of the product", 
- example = "8095d920-3554-49b8-b8f3-906c3b934dbe"
+ examples = "8095d920-3554-49b8-b8f3-906c3b934dbe"
  )
 ):
     products = getAllProducts()
@@ -35,8 +56,6 @@ def getProductById(product_id:str = Path(...,
         if product["id"] == product_id :
             return product 
     raise HTTPException(status_code = 404 , detail = "product not found")
-
-
 
 #GET OPERATIONS
 # using query we will filter the products on basis on name , by category(self) sort by order , limit & offset
@@ -103,8 +122,8 @@ def listProducts(
     return {"total" : total,"limit" : limit , "items" : products}
 
 #POST OPERATIONS 
-@app.post("/products",status_code=201)
-def createProducts(product:Product):
+@app.post("/products",status_code=201, response_model= dict) # response model : dict
+def createProducts(product:Product):  #request scheme : Product 
     product_dict = product.model_dump(mode="json")
     product_dict["id"] = str(uuid4())
     product_dict["created_at"] = datetime.utcnow().isoformat() + "Z"

@@ -1,7 +1,7 @@
 import json 
 from pathlib import Path
 from typing import List,Dict
-DATA_FILE = Path(__file__).parent.parent / "data"/ "dummy.json"
+DATA_FILE = Path(__file__).parent.parent / "data"/ "products.json"
 
 # functions to read products
 
