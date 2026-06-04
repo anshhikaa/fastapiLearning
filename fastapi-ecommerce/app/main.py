@@ -1,5 +1,5 @@
 #import fastapi httpexpection query are classes we import from fastapi
-from fastapi import FastAPI , HTTPException , Query , Path , Request
+from fastapi import FastAPI , HTTPException , Query , Path , Request , Depends
 from fastapi.responses import JSONResponse
 # since i have python version < 3.10 it doesnt support union type syntax(|) 
 from typing import Optional
@@ -19,6 +19,18 @@ load_dotenv()
 # create an instance(object - app) from FastAPI class
 app = FastAPI()
 
+#dependecy injection
+def common_logic():
+    print("hello dependency injection")
+    return "dependency executed"
+
+
+def paginationParams(
+    limit : int = Query(default = 10 , ge = 1 , le = 100),
+    offset : int = Query(default = 0 , ge = 0)
+):
+    return {"limit" : limit ,"offset" : offset}
+
 #Implementing a simple middleware for example 
 @app.middleware("http")
 async def log_request(request : Request,call_next):
@@ -29,7 +41,7 @@ async def log_request(request : Request,call_next):
 
 # what happens in url ends with / simplest get request
 @app.get("/",response_model = dict)
-def root():
+def root(dep = Depends(common_logic)):
     DB_PATH = os.getenv("BASE_URL")
     return JSONResponse(
         status_code = 200,
@@ -85,20 +97,23 @@ def listProducts(
         pattern = "^(asc|desc)$",
         description = "sort product by sortByPrice is true (asc,desc)",
     ),
-    # limit of products shown in display
-    limit : int = Query(
-        default = 10 ,
-        ge = 1 ,
-        le = 100,
-        description = "no. of items to return "
-    ),
-    # how many products visible in one page
-    offset : int = Query(
-        default = 0 , 
-        ge = 0 ,
-        description = "pagination"
-    )
+    # # limit of products shown in display
+    # limit : int = Query(
+    #     default = 10 ,
+    #     ge = 1 ,
+    #     le = 100,
+    #     description = "no. of items to return "
+    # ),
+    # # how many products visible in one page
+    # offset : int = Query(
+    #     default = 0 , 
+    #     ge = 0 ,
+    #     description = "pagination"
+    # )
+    #using dependecy injection for limit and offset
+    pagination : dict = Depends(paginationParams)
 ):
+   
     products = getAllProducts()
     # name =filter specified then normalise to make it case non case sensitive
     if name :
@@ -116,10 +131,16 @@ def listProducts(
     if sortByPrice :
         reverse =  order == "desc"
         products = sorted(products,key=lambda p : p.get("price",0),reverse = reverse)
+    
     total = len(products)
+
+    limit = pagination["limit"]
+    offset = pagination["offset"]
+
     # limit + offset
     products = products[offset: offset+limit]
-    return {"total" : total,"limit" : limit , "items" : products}
+
+    return {"total" : total, "limit" : limit, "offset" : offset, "items" : products}
 
 #POST OPERATIONS 
 @app.post("/products",status_code=201, response_model= dict) # response model : dict
@@ -131,7 +152,7 @@ def createProducts(product:Product):  #request scheme : Product
         addProducts(product_dict)
     except ValueError as e :
         raise HTTPException(status_code = 400 , detail = str(e))
-    return product.model_dump(mode = "json") 
+    return product_dict 
 
 # DELETE OPERATIONS 
 @app.delete("/products/{product_id}")
